@@ -16,10 +16,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/anniversary/api/reservations", ReservationRoutes);
-app.use("/anniversary/api/declines", DeclineRoutes);
-app.use("/anniversary/api/admin", AdminRoutes);
-app.use("/anniversary/api/gallery", GalleryRoutes);
+app.use("/api/reservations", ReservationRoutes);
+app.use("/api/declines", DeclineRoutes);
+app.use("/api/admin", AdminRoutes);
+app.use("/api/gallery", GalleryRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
