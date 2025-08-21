@@ -103,7 +103,7 @@ export async function updateUserPassword(req: Request, res: Response) {
 }
 
 export function getUser(req: Request, res: Response) {
-  const userInfo = req.userInfo;
+  const userInfo = (req as any).userInfo;
 
   if (userInfo)
     return res.status(200).json({ userInfo, message: "User is authenticated" });
