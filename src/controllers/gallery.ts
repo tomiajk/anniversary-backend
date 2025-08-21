@@ -33,7 +33,7 @@ export async function getPictures(req: Request, res: Response) {
     } else return res.status(204).json({ message: "There are no gallery yet" });
   } catch (error) {
     console.log("Error getting all gallery", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
 

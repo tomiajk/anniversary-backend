@@ -45,7 +45,7 @@ export async function getReservations(req: Request, res: Response) {
       return res.status(204).json({ message: "There are no reservations yet" });
   } catch (error) {
     console.log("Error getting all reservations", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
 
@@ -63,7 +63,7 @@ export async function getReservationByCode(req: Request, res: Response) {
         .json({ message: "This invitation code does not exist" });
   } catch (error) {
     console.log("Error fetching this reservation", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
 
@@ -132,7 +132,7 @@ export async function acceptReservation(req: Request, res: Response) {
     } else return res.status(400);
   } catch (error) {
     console.log("Error fetching this reservation", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
 
@@ -149,6 +149,6 @@ export async function deleteReservation(req: Request, res: Response) {
       });
   } catch (error) {
     console.log("Error fetching this reservation", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
