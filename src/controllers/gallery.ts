@@ -41,11 +41,17 @@ export async function postPicture(req: Request, res: Response) {
   const pictures = req.files;
   const category = req.body?.category ? req.body.category : "others";
   const collection = `anniversary-${category}`;
-  // console.log(pictures, "all picture", pictures.length);
+
+  console.log(pictures, "all picture", pictures.length);
+
+  if (!pictures || (pictures.length as number) < 1)
+    return res.status(400).json({ message: "no image uploaded" });
 
   try {
     // for all picture in the array, create a data entry and store in cloudinary
     for (let i = 0; i < (pictures.length as number); i++) {
+      console.log(pictures[i]);
+      console.log(pictures[i].path);
       // upload first to cloudinary
       const { secure_url, public_id } = await uploadToCollection(
         pictures[i].path,
