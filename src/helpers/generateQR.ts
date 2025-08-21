@@ -5,6 +5,7 @@ export default async function (code: string) {
     );
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
+    console.log(url);
     return url;
   } catch (error) {
     throw new Error(error);
