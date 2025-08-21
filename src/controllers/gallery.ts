@@ -41,7 +41,7 @@ export async function postPicture(req: Request, res: Response) {
   const pictures = req.files;
   const category = req.body?.category ? req.body.category : "others";
   const collection = `anniversary-${category}`;
-  console.log(pictures, "all picture", pictures.length);
+  // console.log(pictures, "all picture", pictures.length);
 
   try {
     // for all picture in the array, create a data entry and store in cloudinary

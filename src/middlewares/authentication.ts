@@ -23,5 +23,7 @@ export default function authenticate(
       message: "Error while verifying token",
     });
 
+  req.userInfo = decodedInfo;
+
   next();
 }

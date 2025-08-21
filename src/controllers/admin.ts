@@ -101,3 +101,11 @@ export async function updateUserPassword(req: Request, res: Response) {
     return res.json({ message: error.message });
   }
 }
+
+export function getUser(req: Request, res: Response) {
+  const userInfo = req.userInfo;
+
+  if (userInfo)
+    return res.status(200).json({ userInfo, message: "User is authenticated" });
+  else res.status(500).json({ message: "An error occured" });
+}

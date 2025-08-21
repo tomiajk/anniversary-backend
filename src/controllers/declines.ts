@@ -12,17 +12,15 @@ export async function getDeclines(req: Request, res: Response) {
     const declines = await Decline.find().skip(skip).limit(limit);
 
     if (declines.length > 0)
-      return res
-        .status(200)
-        .json({
-          message: "Declines fetched successfully",
-          data: declines,
-          count,
-        });
+      return res.status(200).json({
+        message: "Declines fetched successfully",
+        data: declines,
+        count,
+      });
     else return res.status(204).json({ message: "There is no data" });
   } catch (error) {
     console.log("Error fetching this decline", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
 
@@ -35,6 +33,6 @@ export async function sendDecline(req: Request, res: Response) {
     throw new Error("Something went wrong");
   } catch (error) {
     console.log("Error fetching this decline", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }

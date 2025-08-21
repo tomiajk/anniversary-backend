@@ -69,7 +69,7 @@ export async function getReservationByCode(req: Request, res: Response) {
 
 export async function makeReservation(req: Request, res: Response) {
   try {
-    const { name, email, phoneNumber, message, numberOfGuests, restrictions } =
+    const { name, email, phoneNumber, message, numOfGuests, restrictions } =
       req.body;
 
     const existing = await Reservation.findOne({ email });
@@ -83,12 +83,10 @@ export async function makeReservation(req: Request, res: Response) {
       email,
       phoneNumber,
       message,
-      numberOfGuests,
       restrictions,
+      numOfGuests: Number(numOfGuests),
       status: "pending",
     });
-
-    console.log(newReservation);
 
     if (newReservation)
       return res
@@ -100,7 +98,7 @@ export async function makeReservation(req: Request, res: Response) {
         .json({ message: "There was an issue booking your reservation" });
   } catch (error) {
     console.log("Error fetching this reservation", error);
-    return res.json({ message: "Error Occured", error });
+    return res.status(500).json({ message: "Error Occured", error });
   }
 }
 
