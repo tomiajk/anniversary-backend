@@ -123,13 +123,28 @@ export async function acceptReservation(req: Request, res: Response) {
       await reservation.save();
 
       //create qr code
-      const qrUrl = await generateQR(invitaionCode);
+      const qrBuffer = await generateQR(invitaionCode);
 
-      //send mail
-      await transporter.sendMail({
+      const mailOptions = {
         to: reservation.email,
         subject: "Invitation to our celebration",
-        html: emailTemplate(invitaionCode, reservation.name, qrUrl),
+        html: emailTemplate(invitaionCode, reservation.name, "qrcode"),
+        attachments: [
+          {
+            filename: "qrcode.png",
+            content: qrBuffer,
+            cid: "qrcode",
+          },
+        ],
+      };
+
+      //send mail
+      await transporter.sendMail(mailOptions, (err, info) => {
+        if (err) {
+          console.error("Error sending mail:", err);
+        } else {
+          console.log("Email sent:", info.response);
+        }
       });
 
       res.status(200).json({ message: "Reservation accepted successfully" });

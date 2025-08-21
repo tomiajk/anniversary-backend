@@ -1,4 +1,3 @@
-// const cloudinary = require("cloudinary").v2;
 import fs from "fs";
 import { v2 as cloudinary } from "cloudinary";
 import { Path } from "mongoose";

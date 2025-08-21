@@ -1,4 +1,4 @@
-import { config } from "dotenv";
+require("dotenv").config();
 import express from "express";
 import cors from "cors";
 
@@ -8,7 +8,6 @@ import AdminRoutes from "./routes/admin-routes";
 import DeclineRoutes from "./routes/decline-routes";
 import connectToDatabase from "./database/db";
 
-config();
 connectToDatabase();
 
 const app = express();
