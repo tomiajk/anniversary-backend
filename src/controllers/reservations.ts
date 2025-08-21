@@ -121,6 +121,7 @@ export async function acceptReservation(req: Request, res: Response) {
       reservation.status = "accepted";
       await reservation.save();
 
+      //send mail
       await transporter.sendMail({
         to: reservation.email,
         subject: "Invitation to our celebration",
