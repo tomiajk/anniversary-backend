@@ -1,5 +1,6 @@
 import createUniqueCode from "../helpers/createCode";
 import emailTemplate from "../helpers/emailTemplate";
+import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
 import nodemailer from "nodemailer";
@@ -121,11 +122,14 @@ export async function acceptReservation(req: Request, res: Response) {
       reservation.status = "accepted";
       await reservation.save();
 
+      //create qr code
+      const qrUrl = await generateQR(invitaionCode);
+
       //send mail
       await transporter.sendMail({
         to: reservation.email,
         subject: "Invitation to our celebration",
-        html: emailTemplate(invitaionCode, reservation.name, "testing"),
+        html: emailTemplate(invitaionCode, reservation.name, qrUrl),
       });
 
       res.status(200).json({ message: "Reservation accepted successfully" });

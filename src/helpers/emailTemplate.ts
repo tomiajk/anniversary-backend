@@ -32,7 +32,7 @@ export default function (code: string, name: string, qrUrl: string) {
                   <div style="font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#ffb366; margin-bottom:8px;">Invitation Code</div>
                   <div style="font-size:26px; font-weight:bold; letter-spacing:2px; color:#fff3e0; font-family:'Playfair Display', serif;">${code}</div>
                   <div style="margin-top:16px;">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?data=https://anniversary01.vercel.app.com/admin/${code}" alt="QR Code" width="120" height="120" style="border-radius:8px; display:block; margin:auto; />
+                    <img src="${qrUrl}" alt="QR Code" width="120" height="120" style="border-radius:8px; display:block; margin:auto;"/>
                   </div>
                 </div>
 
