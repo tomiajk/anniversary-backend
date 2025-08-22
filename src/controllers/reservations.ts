@@ -159,13 +159,13 @@ export async function acceptReservation(req: Request, res: Response) {
 export async function checkInGuest(req: Request, res: Response) {
   try {
     const { invitationCode } = req.params;
-    const reservation = await Reservation.findOneAndUpdate(
-      { invitationCode },
-      { isPresent: true }
-    );
+    const reservation = await Reservation.findOne({ invitationCode });
 
     if (!invitationCode)
       return res.status(400).json({ message: "Pass in a valid code" });
+
+    reservation.isPresent = true;
+    await reservation.save();
 
     return res
       .status(200)
