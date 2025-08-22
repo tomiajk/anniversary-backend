@@ -12,7 +12,7 @@ const router = express.Router();
 // create an admin user
 router.post("/create", registerUser);
 router.post("/login", loginUser);
-router.post("/getUser", authenticate, getUser);
+router.get("/getUser", authenticate, getUser);
 router.put("/update/:userId", authenticate, updateUserPassword);
 
 export default router;
