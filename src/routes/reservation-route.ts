@@ -24,7 +24,7 @@ router.delete("/delete/:reservationId", authenticate, deleteReservation);
 router.put("/accept/:reservationId", authenticate, acceptReservation);
 
 // check in
-router.put("/checkin/:reservationId", authenticate, checkInGuest);
+router.put("/checkin/:invitationCode", authenticate, checkInGuest);
 
 // guest should be able to submit a reservation
 router.post("/book", makeReservation);
