@@ -87,6 +87,7 @@ export async function makeReservation(req: Request, res: Response) {
       restrictions,
       numOfGuests: Number(numOfGuests),
       status: "pending",
+      isPresent: false,
     });
 
     if (newReservation)
@@ -149,6 +150,23 @@ export async function acceptReservation(req: Request, res: Response) {
 
       res.status(200).json({ message: "Reservation accepted successfully" });
     } else return res.status(400);
+  } catch (error) {
+    console.log("Error fetching this reservation", error);
+    return res.status(500).json({ message: "Error Occured", error });
+  }
+}
+
+export async function checkInGuest(req: Request, res: Response) {
+  try {
+    const { reservationId } = req.params;
+    const reservation = await Reservation.findById(reservationId);
+
+    if (!reservationId)
+      return res.status(400).json({ message: "Pass in a valid id" });
+
+    reservation.isPresent = true;
+    await reservation.save();
+    return res.status(200).json({ message: "Guest checked in successfully " });
   } catch (error) {
     console.log("Error fetching this reservation", error);
     return res.status(500).json({ message: "Error Occured", error });

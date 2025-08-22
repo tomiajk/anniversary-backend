@@ -11,6 +11,7 @@ export interface ReservationDocument extends mongoose.Document {
   message?: string;
   restrictions?: string;
   invitationCode?: string;
+  isPresent: boolean;
 }
 
 const ReservationSchema = new mongoose.Schema<ReservationDocument>(
@@ -27,6 +28,7 @@ const ReservationSchema = new mongoose.Schema<ReservationDocument>(
     message: { type: String },
     restrictions: { type: String },
     invitationCode: { type: String, unique: true, sparse: true },
+    isPresent: { type: Boolean, required: true },
   },
   { timestamps: true }
 );

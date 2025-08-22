@@ -5,6 +5,7 @@ import {
   makeReservation,
   acceptReservation,
   deleteReservation,
+  checkInGuest,
 } from "../controllers/reservations";
 import authenticate from "../middlewares/authentication";
 
@@ -21,6 +22,9 @@ router.delete("/delete/:reservationId", authenticate, deleteReservation);
 
 // admin should be able to accept a reservation request
 router.put("/accept/:reservationId", authenticate, acceptReservation);
+
+// check in
+router.put("/checkin/:reservationId", authenticate, checkInGuest);
 
 // guest should be able to submit a reservation
 router.post("/book", makeReservation);
