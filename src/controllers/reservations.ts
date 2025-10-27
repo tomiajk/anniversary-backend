@@ -1,3 +1,4 @@
+import { title } from "process";
 import createUniqueCode from "../helpers/createCode";
 import emailTemplate from "../helpers/emailTemplate";
 import generateQR from "../helpers/generateQR";
@@ -129,6 +130,7 @@ export async function acceptReservation(req: Request, res: Response) {
       const mailOptions = {
         to: reservation.email,
         subject: "Invitation to our celebration",
+        title: "Invitation to our celebration",
         html: emailTemplate(invitaionCode, reservation.name, "qrcode"),
         attachments: [
           {
