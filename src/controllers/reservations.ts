@@ -128,6 +128,7 @@ export async function acceptReservation(req: Request, res: Response) {
       const qrBuffer = await generateQR(invitaionCode);
 
       const mailOptions = {
+        from: process.env.EMAIL_USER,
         to: reservation.email,
         subject: "Invitation to our celebration",
         title: "Invitation to our celebration",
@@ -141,14 +142,7 @@ export async function acceptReservation(req: Request, res: Response) {
         ],
       };
 
-      //send mail
-      await transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-          console.error("Error sending mail:", err);
-        } else {
-          console.log("Email sent:", info.response);
-        }
-      });
+      await transporter.sendMail(mailOptions);
 
       res.status(200).json({ message: "Reservation accepted successfully" });
     } else return res.status(400);
