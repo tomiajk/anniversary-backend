@@ -127,6 +127,7 @@ export async function acceptReservation(req: Request, res: Response) {
       const qrBuffer = await generateQR(invitaionCode);
 
       const mailOptions = {
+        from: `"Invitation to our Celebration" <${process.env.EMAIL_USER}>`,
         to: reservation.email,
         subject: "Invitation to our celebration",
         html: emailTemplate(invitaionCode, reservation.name, "qrcode"),
