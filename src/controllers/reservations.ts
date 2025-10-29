@@ -10,6 +10,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
 const REDIRECT_URI = process.env.REDIRECT_URI;
+const EMAIL_USER = process.env.EMAIL_USER;
 
 const oAuth2Client = new google.auth.OAuth2(
 	CLIENT_ID,
@@ -32,7 +33,7 @@ export async function sendMail(
 			service: "gmail",
 			auth: {
 				type: "OAuth2",
-				user: "yourproject123@gmail.com", // your Gmail account
+				user: EMAIL_USER,
 				clientId: CLIENT_ID,
 				clientSecret: CLIENT_SECRET,
 				refreshToken: REFRESH_TOKEN,
