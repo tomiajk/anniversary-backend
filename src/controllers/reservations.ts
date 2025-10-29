@@ -17,7 +17,7 @@ async function sendMail(
 		// create qr buffer
 		const qrBuffer = await generateQR(invitaionCode);
 		await resend.emails.send({
-			from: "Invitation to our Celebration <support@veend.com>",
+			from: "Invitation to our Celebration <onboarding@resend.dev>",
 			to: recepient,
 			subject: "Invitaion to our Celebration",
 			html: html,
@@ -54,8 +54,6 @@ export async function getReservations(req: Request, res: Response) {
 			.skip(skip)
 			.limit(limit)
 			.sort(sortObj);
-
-		console.log(reservations);
 
 		if (reservations.length > 0) {
 			return res.status(200).json({
