@@ -3,7 +3,8 @@ import emailTemplate from "../helpers/emailTemplate";
 import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
-import { Resend } from "resend";
+
+const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
