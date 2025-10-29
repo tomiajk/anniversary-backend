@@ -36,8 +36,6 @@ export async function getReservations(req: Request, res: Response) {
       .limit(limit)
       .sort(sortObj);
 
-    console.log(reservations);
-
     if (reservations.length > 0) {
       return res.status(200).json({
         message: "Reservations fetched successfully",
