@@ -4,192 +4,222 @@ import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
 import nodemailer from "nodemailer";
+import { google } from "googleapis";
 
-const transporter = nodemailer.createTransport({
-	host: "smtp.office365.com",
-	port: 587,
-	secure: false,
-	auth: {
-		user: process.env.EMAIL_USER,
-		pass: process.env.EMAIL_PASS,
-	},
-});
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+
+const oAuth2Client = new google.auth.OAuth2(
+	CLIENT_ID,
+	CLIENT_SECRET,
+	REDIRECT_URI
+);
+
+oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+export async function sendMail(
+	to: string,
+	html: string,
+	invitationCode: string
+) {
+	try {
+		const qrBuffer = await generateQR(invitationCode);
+		const accessToken = await oAuth2Client.getAccessToken();
+
+		const transporter = nodemailer.createTransport({
+			service: "gmail",
+			auth: {
+				type: "OAuth2",
+				user: "yourproject123@gmail.com", // your Gmail account
+				clientId: CLIENT_ID,
+				clientSecret: CLIENT_SECRET,
+				refreshToken: REFRESH_TOKEN,
+				accessToken: accessToken.token,
+			},
+		});
+
+		const mailOptions = {
+			from: `"Invitation to our Celebration" <${process.env.EMAIL_USER}>`,
+			to: to,
+			subject: "Invitation to our celebration",
+			html: html,
+			// html: emailTemplate(invitaionCode, reservation.name, "qrcode"),
+			attachments: [
+				{
+					filename: "qrcode.png",
+					content: qrBuffer,
+					cid: "qrcode",
+				},
+			],
+		};
+
+		const result = await transporter.sendMail(mailOptions);
+		console.log("Email sent:", result.messageId);
+		return result;
+	} catch (error) {
+		console.error("Error sending email:", error);
+		throw error;
+	}
+}
 
 export async function getReservations(req: Request, res: Response) {
-  try {
-    //sorting
-    const sortBy: string = req?.query?.sortBy
-      ? (req.query.sortBy as string)
-      : "numOfGuests";
-    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
-    const sortObj: Record<string, 1 | -1> = {};
-    sortObj[sortBy] = sortOrder;
+	try {
+		//sorting
+		const sortBy: string = req?.query?.sortBy
+			? (req.query.sortBy as string)
+			: "numOfGuests";
+		const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+		const sortObj: Record<string, 1 | -1> = {};
+		sortObj[sortBy] = sortOrder;
 
-    //pagination
-    const page = req.query.page ? Number(req.query.page) : 1;
-    const limit = req.query.limit ? Number(req.query.limit) : 20;
-    const skip = (page - 1) * limit;
-    const count = await Reservation.countDocuments();
+		//pagination
+		const page = req.query.page ? Number(req.query.page) : 1;
+		const limit = req.query.limit ? Number(req.query.limit) : 20;
+		const skip = (page - 1) * limit;
+		const count = await Reservation.countDocuments();
 
-    const reservations = await Reservation.find()
-      .skip(skip)
-      .limit(limit)
-      .sort(sortObj);
+		const reservations = await Reservation.find()
+			.skip(skip)
+			.limit(limit)
+			.sort(sortObj);
 
-    if (reservations.length > 0) {
-      return res.status(200).json({
-        message: "Reservations fetched successfully",
-        data: { reservations },
-        count,
-      });
-    } else
-      return res.status(204).json({ message: "There are no reservations yet" });
-  } catch (error) {
-    console.log("Error getting all reservations", error);
-    return res.status(500).json({ message: "Error Occured", error });
-  }
+		if (reservations.length > 0) {
+			return res.status(200).json({
+				message: "Reservations fetched successfully",
+				data: { reservations },
+				count,
+			});
+		} else
+			return res.status(204).json({ message: "There are no reservations yet" });
+	} catch (error) {
+		console.log("Error getting all reservations", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
 }
 
 export async function getReservationByCode(req: Request, res: Response) {
-  try {
-    const { invitationCode } = req.params;
-    const reservation = await Reservation.findOne({ invitationCode });
-    if (reservation)
-      return res
-        .status(200)
-        .json({ message: "User fetched successfully", data: reservation });
-    else
-      return res
-        .status(204)
-        .json({ message: "This invitation code does not exist" });
-  } catch (error) {
-    console.log("Error fetching this reservation", error);
-    return res.status(500).json({ message: "Error Occured", error });
-  }
+	try {
+		const { invitationCode } = req.params;
+		const reservation = await Reservation.findOne({ invitationCode });
+		if (reservation)
+			return res
+				.status(200)
+				.json({ message: "User fetched successfully", data: reservation });
+		else
+			return res
+				.status(204)
+				.json({ message: "This invitation code does not exist" });
+	} catch (error) {
+		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
 }
 
 export async function makeReservation(req: Request, res: Response) {
-  try {
-    const { name, email, phoneNumber, message, numOfGuests, restrictions } =
-      req.body;
+	try {
+		const { name, email, phoneNumber, message, numOfGuests, restrictions } =
+			req.body;
 
-    const existing = await Reservation.findOne({ email });
-    if (existing)
-      return res
-        .status(400)
-        .json({ message: "This user has already requested a reservation" });
+		const existing = await Reservation.findOne({ email });
+		if (existing)
+			return res
+				.status(400)
+				.json({ message: "This user has already requested a reservation" });
 
-    const newReservation = await Reservation.create({
-      name,
-      email,
-      phoneNumber,
-      message,
-      restrictions,
-      numOfGuests: Number(numOfGuests),
-      status: "pending",
-      isPresent: false,
-    });
+		const newReservation = await Reservation.create({
+			name,
+			email,
+			phoneNumber,
+			message,
+			restrictions,
+			numOfGuests: Number(numOfGuests),
+			status: "pending",
+			isPresent: false,
+		});
 
-    if (newReservation)
-      return res
-        .status(201)
-        .json({ message: "Reservation created successfully" });
-    else
-      return res
-        .status(401)
-        .json({ message: "There was an issue booking your reservation" });
-  } catch (error) {
-    console.log("Error fetching this reservation", error);
-    return res.status(500).json({ message: "Error Occured", error });
-  }
+		if (newReservation)
+			return res
+				.status(201)
+				.json({ message: "Reservation created successfully" });
+		else
+			return res
+				.status(401)
+				.json({ message: "There was an issue booking your reservation" });
+	} catch (error) {
+		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
 }
 
 export async function acceptReservation(req: Request, res: Response) {
-  try {
-    const { reservationId } = req.params;
-    const reservation = await Reservation.findById(reservationId);
-    const invitaionCode = createUniqueCode();
+	try {
+		const { reservationId } = req.params;
+		const reservation = await Reservation.findById(reservationId);
+		const invitaionCode = createUniqueCode();
 
-    if (
-      reservation.status === "accepted" &&
-      reservation.invitationCode !== null
-    )
-      return res
-        .status(400)
-        .json({ message: "This user already has an invitation code" });
+		if (
+			reservation.status === "accepted" &&
+			reservation.invitationCode !== null
+		)
+			return res
+				.status(400)
+				.json({ message: "This user already has an invitation code" });
 
-    if (reservation) {
-      reservation.invitationCode = invitaionCode;
-      reservation.status = "accepted";
-      await reservation.save();
+		if (reservation) {
+			reservation.invitationCode = invitaionCode;
+			reservation.status = "accepted";
+			await reservation.save();
 
-      //create qr code
-      const qrBuffer = await generateQR(invitaionCode);
+			//send mail
+			sendMail(
+				reservation.email,
+				emailTemplate(invitaionCode, reservation.name, "qrcode"),
+				invitaionCode
+			);
 
-      const mailOptions = {
-        from: `"Invitation to our Celebration" <${process.env.EMAIL_USER}>`,
-        to: reservation.email,
-        subject: "Invitation to our celebration",
-        html: emailTemplate(invitaionCode, reservation.name, "qrcode"),
-        attachments: [
-          {
-            filename: "qrcode.png",
-            content: qrBuffer,
-            cid: "qrcode",
-          },
-        ],
-      };
-
-      //send mail
-      await transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-          console.error("Error sending mail:", err);
-        } else {
-          console.log("Email sent:", info.response);
-        }
-      });
-
-      res.status(200).json({ message: "Reservation accepted successfully" });
-    } else return res.status(400);
-  } catch (error) {
-    console.log("Error fetching this reservation", error);
-    return res.status(500).json({ message: "Error Occured", error });
-  }
+			res.status(200).json({ message: "Reservation accepted successfully" });
+		} else return res.status(400);
+	} catch (error) {
+		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
 }
 
 export async function checkInGuest(req: Request, res: Response) {
-  try {
-    const { invitationCode } = req.params;
-    const reservation = await Reservation.findOne({ invitationCode });
+	try {
+		const { invitationCode } = req.params;
+		const reservation = await Reservation.findOne({ invitationCode });
 
-    if (!invitationCode)
-      return res.status(400).json({ message: "Pass in a valid code" });
+		if (!invitationCode)
+			return res.status(400).json({ message: "Pass in a valid code" });
 
-    reservation.isPresent = true;
-    await reservation.save();
+		reservation.isPresent = true;
+		await reservation.save();
 
-    return res
-      .status(200)
-      .json({ message: "Guest checked in successfully", data: reservation });
-  } catch (error) {
-    console.log("Error fetching this reservation", error);
-    return res.status(500).json({ message: "Error Occured", error });
-  }
+		return res
+			.status(200)
+			.json({ message: "Guest checked in successfully", data: reservation });
+	} catch (error) {
+		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
 }
 
 export async function deleteReservation(req: Request, res: Response) {
-  try {
-    const { reservationId } = req.params;
-    const reservation = await Reservation.findByIdAndDelete(reservationId);
+	try {
+		const { reservationId } = req.params;
+		const reservation = await Reservation.findByIdAndDelete(reservationId);
 
-    if (reservation)
-      return res.status(200).json({ reservation: "successfully deleted" });
-    else
-      return res.status(400).json({
-        message: "Reservation with this id does not exist in the database",
-      });
-  } catch (error) {
-    console.log("Error fetching this reservation", error);
-    return res.status(500).json({ message: "Error Occured", error });
-  }
+		if (reservation)
+			return res.status(200).json({ reservation: "successfully deleted" });
+		else
+			return res.status(400).json({
+				message: "Reservation with this id does not exist in the database",
+			});
+	} catch (error) {
+		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
 }
