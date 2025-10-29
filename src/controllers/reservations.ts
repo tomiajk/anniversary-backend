@@ -17,7 +17,7 @@ async function sendMail(
 		// create qr buffer
 		const qrBuffer = await generateQR(invitaionCode);
 		await resend.emails.send({
-			from: "Invitation to our Celebration <onboarding@resend.dev>",
+			from: "Invitation to our Celebration <invitation@ft4015.com>",
 			to: recepient,
 			subject: "Invitaion to our Celebration",
 			html: html,
