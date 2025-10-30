@@ -3,7 +3,6 @@ import emailTemplate from "../helpers/emailTemplate";
 import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
-import nodemailer from "nodemailer";
 import { google } from "googleapis";
 
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -20,7 +19,11 @@ const oAuth2Client = new google.auth.OAuth2(
 
 oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
-export async function sendMail(to: string, html: string, invitationCode: string) {
+export async function sendMail(
+	to: string,
+	html: string,
+	invitationCode: string
+) {
 	try {
 		const qrBuffer = await generateQR(invitationCode);
 		const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
@@ -68,6 +71,58 @@ export async function sendMail(to: string, html: string, invitationCode: string)
 	}
 }
 
+export async function getReservations(req: Request, res: Response) {
+	try {
+		//sorting
+		const sortBy: string = req?.query?.sortBy
+			? (req.query.sortBy as string)
+			: "numOfGuests";
+		const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
+		const sortObj: Record<string, 1 | -1> = {};
+		sortObj[sortBy] = sortOrder;
+
+		//pagination
+		const page = req.query.page ? Number(req.query.page) : 1;
+		const limit = req.query.limit ? Number(req.query.limit) : 20;
+		const skip = (page - 1) * limit;
+		const count = await Reservation.countDocuments();
+
+		const reservations = await Reservation.find()
+			.skip(skip)
+			.limit(limit)
+			.sort(sortObj);
+
+		if (reservations.length > 0) {
+			return res.status(200).json({
+				message: "Reservations fetched successfully",
+				data: { reservations },
+				count,
+			});
+		} else
+			return res.status(204).json({ message: "There are no reservations yet" });
+	} catch (error) {
+		console.log("Error getting all reservations", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
+}
+
+export async function getReservationByCode(req: Request, res: Response) {
+	try {
+		const { invitationCode } = req.params;
+		const reservation = await Reservation.findOne({ invitationCode });
+		if (reservation)
+			return res
+				.status(200)
+				.json({ message: "User fetched successfully", data: reservation });
+		else
+			return res
+				.status(204)
+				.json({ message: "This invitation code does not exist" });
+	} catch (error) {
+		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
+}
 
 export async function makeReservation(req: Request, res: Response) {
 	try {
@@ -125,7 +180,7 @@ export async function acceptReservation(req: Request, res: Response) {
 			await reservation.save();
 
 			//send mail
-			await sendMail(
+			sendMail(
 				reservation.email,
 				emailTemplate(invitaionCode, reservation.name, "qrcode"),
 				invitaionCode
