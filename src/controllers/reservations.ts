@@ -20,103 +20,54 @@ const oAuth2Client = new google.auth.OAuth2(
 
 oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
-export async function sendMail(
-	to: string,
-	html: string,
-	invitationCode: string
-) {
+export async function sendMail(to: string, html: string, invitationCode: string) {
 	try {
 		const qrBuffer = await generateQR(invitationCode);
-		const accessToken = await oAuth2Client.getAccessToken();
+		const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
-		const transporter = nodemailer.createTransport({
-			service: "gmail",
-			auth: {
-				type: "OAuth2",
-				user: EMAIL_USER,
-				clientId: CLIENT_ID,
-				clientSecret: CLIENT_SECRET,
-				refreshToken: REFRESH_TOKEN,
-				accessToken: accessToken.token,
+		// Convert QR image to Base64
+		const qrBase64 = qrBuffer.toString("base64");
+
+		// Create HTML email with embedded image
+		const messageParts = [
+			`From: "Invitation to our Celebration" <${EMAIL_USER}>`,
+			`To: ${to}`,
+			"Subject: Invitation to our celebration",
+			"MIME-Version: 1.0",
+			"Content-Type: multipart/related; boundary=boundary123",
+			"",
+			"--boundary123",
+			"Content-Type: text/html; charset=UTF-8",
+			"",
+			html.replace("cid:qrcode", "data:image/png;base64," + qrBase64),
+			"",
+			"--boundary123--",
+		];
+
+		const message = messageParts.join("\n");
+
+		// Gmail API requires Base64URL encoding
+		const encodedMessage = Buffer.from(message)
+			.toString("base64")
+			.replace(/\+/g, "-")
+			.replace(/\//g, "_")
+			.replace(/=+$/, "");
+
+		const result = await gmail.users.messages.send({
+			userId: "me",
+			requestBody: {
+				raw: encodedMessage,
 			},
 		});
 
-		const mailOptions = {
-			from: `"Invitation to our Celebration" <${process.env.EMAIL_USER}>`,
-			to: to,
-			subject: "Invitation to our celebration",
-			html: html,
-			// html: emailTemplate(invitaionCode, reservation.name, "qrcode"),
-			attachments: [
-				{
-					filename: "qrcode.png",
-					content: qrBuffer,
-					cid: "qrcode",
-				},
-			],
-		};
-
-		const result = await transporter.sendMail(mailOptions);
-		console.log("Email sent:", result.messageId);
-		return result;
+		console.log("✅ Email sent via Gmail API:", result.data.id);
+		return result.data;
 	} catch (error) {
-		console.error("Error sending email:", error);
+		console.error("❌ Error sending email:", error);
 		throw error;
 	}
 }
 
-export async function getReservations(req: Request, res: Response) {
-	try {
-		//sorting
-		const sortBy: string = req?.query?.sortBy
-			? (req.query.sortBy as string)
-			: "numOfGuests";
-		const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
-		const sortObj: Record<string, 1 | -1> = {};
-		sortObj[sortBy] = sortOrder;
-
-		//pagination
-		const page = req.query.page ? Number(req.query.page) : 1;
-		const limit = req.query.limit ? Number(req.query.limit) : 20;
-		const skip = (page - 1) * limit;
-		const count = await Reservation.countDocuments();
-
-		const reservations = await Reservation.find()
-			.skip(skip)
-			.limit(limit)
-			.sort(sortObj);
-
-		if (reservations.length > 0) {
-			return res.status(200).json({
-				message: "Reservations fetched successfully",
-				data: { reservations },
-				count,
-			});
-		} else
-			return res.status(204).json({ message: "There are no reservations yet" });
-	} catch (error) {
-		console.log("Error getting all reservations", error);
-		return res.status(500).json({ message: "Error Occured", error });
-	}
-}
-
-export async function getReservationByCode(req: Request, res: Response) {
-	try {
-		const { invitationCode } = req.params;
-		const reservation = await Reservation.findOne({ invitationCode });
-		if (reservation)
-			return res
-				.status(200)
-				.json({ message: "User fetched successfully", data: reservation });
-		else
-			return res
-				.status(204)
-				.json({ message: "This invitation code does not exist" });
-	} catch (error) {
-		console.log("Error fetching this reservation", error);
-		return res.status(500).json({ message: "Error Occured", error });
-	}
-}
 
 export async function makeReservation(req: Request, res: Response) {
 	try {
