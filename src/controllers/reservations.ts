@@ -33,7 +33,7 @@ export async function sendMail(
 
 		// Create HTML email with embedded image
 		const messageParts = [
-			`From: "Invitation to our Celebration" <${EMAIL_USER}>`,
+			`From: "Tope and Funmbi" <${EMAIL_USER}>`,
 			`To: ${to}`,
 			"Subject: Invitation to our celebration",
 			"MIME-Version: 1.0",
