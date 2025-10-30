@@ -174,7 +174,7 @@ export async function acceptReservation(req: Request, res: Response) {
 			await reservation.save();
 
 			//send mail
-			sendMail(
+			await sendMail(
 				reservation.email,
 				emailTemplate(invitaionCode, reservation.name, "qrcode"),
 				invitaionCode
