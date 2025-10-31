@@ -3,21 +3,75 @@ import emailTemplate from "../helpers/emailTemplate";
 import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
-import { google } from "googleapis";
+import axios from "axios";
 
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
-const REDIRECT_URI = process.env.REDIRECT_URI;
+// const CLIENT_ID = process.env.CLIENT_ID;
+// const CLIENT_SECRET = process.env.CLIENT_SECRET;
+// const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+// const REDIRECT_URI = process.env.REDIRECT_URI;
+// const EMAIL_USER = process.env.EMAIL_USER;
+
+// const oAuth2Client = new google.auth.OAuth2(
+// 	CLIENT_ID,
+// 	CLIENT_SECRET,
+// 	REDIRECT_URI
+// );
+
+// oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+// export async function sendMail(
+// 	to: string,
+// 	html: string,
+// 	invitationCode: string
+// ) {
+// 	try {
+// 		const qrBuffer = await generateQR(invitationCode);
+// 		const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+// 		// Convert QR image to Base64
+// 		const qrBase64 = qrBuffer.toString("base64");
+
+// 		// Create HTML email with embedded image
+// 		const messageParts = [
+// 			`From: '"Tope and Funmbi" <${EMAIL_USER}>'`,
+// 			`To: ${to}`,
+// 			"Subject: Invitation to our celebration",
+// 			"MIME-Version: 1.0",
+// 			"Content-Type: multipart/related; boundary=boundary123",
+// 			"",
+// 			"--boundary123",
+// 			"Content-Type: text/html; charset=UTF-8",
+// 			"",
+// 			html.replace("cid:qrcode", "data:image/png;base64," + qrBase64),
+// 			"",
+// 			"--boundary123--",
+// 		];
+
+// 		const message = messageParts.join("\n");
+
+// 		// Gmail API requires Base64URL encoding
+// 		const encodedMessage = Buffer.from(message)
+// 			.toString("base64")
+// 			.replace(/\+/g, "-")
+// 			.replace(/\//g, "_")
+// 			.replace(/=+$/, "");
+
+// 		const result = await gmail.users.messages.send({
+// 			userId: "me",
+// 			requestBody: {
+// 				raw: encodedMessage,
+// 			},
+// 		});
+
+// 		console.log("✅ Email sent via Gmail API:", result.data.id);
+// 		return result.data;
+// 	} catch (error) {
+// 		console.error("❌ Error sending email:", error);
+// 		throw error;
+// 	}
+// }
+
 const EMAIL_USER = process.env.EMAIL_USER;
-
-const oAuth2Client = new google.auth.OAuth2(
-	CLIENT_ID,
-	CLIENT_SECRET,
-	REDIRECT_URI
-);
-
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 
 export async function sendMail(
 	to: string,
@@ -25,48 +79,48 @@ export async function sendMail(
 	invitationCode: string
 ) {
 	try {
+		// 1️⃣ Generate QR code
 		const qrBuffer = await generateQR(invitationCode);
-		const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-
-		// Convert QR image to Base64
 		const qrBase64 = qrBuffer.toString("base64");
 
-		// Create HTML email with embedded image
-		const messageParts = [
-			`From: '"Tope and Funmbi's Celebration" <${EMAIL_USER}>'`,
-			`To: ${to}`,
-			"Subject: Invitation to our celebration",
-			"MIME-Version: 1.0",
-			"Content-Type: multipart/related; boundary=boundary123",
-			"",
-			"--boundary123",
-			"Content-Type: text/html; charset=UTF-8",
-			"",
-			html.replace("cid:qrcode", "data:image/png;base64," + qrBase64),
-			"",
-			"--boundary123--",
-		];
+		// 2️⃣ Replace placeholder in your HTML with QR image
+		const updatedHtml = html.replace(
+			"cid:qrcode",
+			`data:image/png;base64,${qrBase64}`
+		);
 
-		const message = messageParts.join("\n");
-
-		// Gmail API requires Base64URL encoding
-		const encodedMessage = Buffer.from(message)
-			.toString("base64")
-			.replace(/\+/g, "-")
-			.replace(/\//g, "_")
-			.replace(/=+$/, "");
-
-		const result = await gmail.users.messages.send({
-			userId: "me",
-			requestBody: {
-				raw: encodedMessage,
+		// 3️⃣ Build Elastic Email request payload
+		const emailData = {
+			Recipients: [to],
+			Content: {
+				From: `"Tope and Funmbi's Celebration" <${EMAIL_USER}>`,
+				Subject: "Invitation to our celebration 🎉",
+				Body: [
+					{
+						ContentType: "HTML",
+						Charset: "utf-8",
+						Content: updatedHtml,
+					},
+				],
 			},
-		});
+		};
 
-		console.log("✅ Email sent via Gmail API:", result.data.id);
-		return result.data;
+		// 4️⃣ Send via Elastic Email HTTPS API
+		const response = await axios.post(
+			"https://api.elasticemail.com/v4/emails",
+			emailData,
+			{
+				headers: {
+					"X-ElasticEmail-ApiKey": process.env.ELASTIC_API_KEY,
+					"Content-Type": "application/json",
+				},
+			}
+		);
+
+		console.log("✅ Email sent via Elastic Email:", response.data);
+		return response.data;
 	} catch (error) {
-		console.error("❌ Error sending email:", error);
+		console.error("❌ Error sending email:", error.response?.data || error);
 		throw error;
 	}
 }
