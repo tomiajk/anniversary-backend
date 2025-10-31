@@ -75,39 +75,32 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SENDER_EMAIL = process.env.SENDER_EMAIL;
 const SENDER_NAME = process.env.SENDER_NAME;
 
-export async function sendMail(
-	to: string,
-	html: string,
-	invitationCode: string
-) {
+export async function sendMail(to, html, invitationCode) {
 	try {
-		// 1️⃣ Generate QR
+		// Generate QR
 		const qrBuffer = await generateQR(invitationCode);
 		const qrBase64 = qrBuffer.toString("base64");
 
-		// 2️⃣ Embed QR in HTML
-		const updatedHtml = html.replace(
-			"cid:qrcode",
-			`data:image/png;base64,${qrBase64}`
-		);
+		// Use a placeholder in HTML for the QR
+		const updatedHtml = html.replace("cid:qrcode", "<img src='cid:qrcode'/>");
 
-		// 3️⃣ Build Brevo transactional payload
+		// Build Brevo transactional payload
 		const payload = {
-			sender: {
-				name: SENDER_NAME,
-				email: SENDER_EMAIL,
-			},
-			to: [
-				{
-					email: to,
-				},
-			],
+			sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+			to: [{ email: to }],
 			subject: "Invitation to our celebration 🎉",
 			htmlContent: updatedHtml,
-			// optional: textContent: "Your invitation text fallback"
+			attachment: [
+				{
+					content: qrBase64,
+					name: "qrcode.png",
+					type: "image/png",
+					contentId: "qrcode",
+				},
+			],
 		};
 
-		// 4️⃣ Send via Brevo API
+		// Send via Brevo API
 		const res = await axios.post(
 			"https://api.brevo.com/v3/smtp/email",
 			payload,
