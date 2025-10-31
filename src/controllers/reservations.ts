@@ -71,61 +71,64 @@ import axios from "axios";
 // 	}
 // }
 
-const EMAIL_USER = process.env.EMAIL_USER;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const SENDER_EMAIL = process.env.SENDER_EMAIL;
+const SENDER_NAME = process.env.SENDER_NAME;
 
-export async function sendMail(to, html, invitationCode) {
+export async function sendMail(
+	to: string,
+	html: string,
+	invitationCode: string
+) {
 	try {
-		// 1️⃣ Generate QR code
+		// 1️⃣ Generate QR
 		const qrBuffer = await generateQR(invitationCode);
 		const qrBase64 = qrBuffer.toString("base64");
 
-		// 2️⃣ Insert QR code into HTML
+		// 2️⃣ Embed QR in HTML
 		const updatedHtml = html.replace(
 			"cid:qrcode",
 			`data:image/png;base64,${qrBase64}`
 		);
 
-		// 3️⃣ Build correct Elastic Email body
-		const emailData = {
-			Recipients: [
+		// 3️⃣ Build Brevo transactional payload
+		const payload = {
+			sender: {
+				name: SENDER_NAME,
+				email: SENDER_EMAIL,
+			},
+			to: [
 				{
-					Email: to,
+					email: to,
 				},
 			],
-			Content: {
-				From: `${EMAIL_USER}`,
-				FromName: "Tope and Funmbi's Celebration",
-				Subject: "Invitation to our celebration 🎉",
-				Body: [
-					{
-						ContentType: "HTML",
-						Charset: "utf-8",
-						Content: updatedHtml,
-					},
-				],
-			},
+			subject: "Invitation to our celebration 🎉",
+			htmlContent: updatedHtml,
+			// optional: textContent: "Your invitation text fallback"
 		};
 
-		// 4️⃣ Send via Elastic Email HTTPS API
-		const response = await axios.post(
-			"https://api.elasticemail.com/v4/emails",
-			emailData,
+		// 4️⃣ Send via Brevo API
+		const res = await axios.post(
+			"https://api.brevo.com/v3/smtp/email",
+			payload,
 			{
 				headers: {
-					"X-ElasticEmail-ApiKey": process.env.ELASTIC_API_KEY,
-					"Content-Type": "application/json",
+					accept: "application/json",
+					"content-type": "application/json",
+					"api-key": BREVO_API_KEY,
 				},
+				timeout: 15000,
 			}
 		);
 
-		console.log("✅ Email sent via Elastic Email:", response.data);
-		return response.data;
-	} catch (error) {
+		console.log("✅ Email sent successfully:", res.data);
+		return res.data;
+	} catch (err) {
 		console.error(
-			"❌ Error sending email:",
-			error.response?.data || error.message
+			"❌ Brevo send error:",
+			err.response?.data || err.message || err
 		);
-		throw error;
+		throw err;
 	}
 }
 
