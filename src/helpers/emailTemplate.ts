@@ -1,5 +1,5 @@
 export default function (code: string, name: string, qrUrl: string) {
-  return `<!doctype html>
+	return `<!doctype html>
   <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
     <head>
       <meta charset="utf-8"/>
@@ -73,7 +73,7 @@ export default function (code: string, name: string, qrUrl: string) {
                   <p style="margin:16px 0 0 0;">
                     We look forward to celebrating with you.<br/>
                     With appreciation,<br/>
-                    <em style="font-family:'Great Vibes', cursive; font-size:22px; color:#FFD700;">Mr and Mrs Bandele</em>
+                    <em style="font-family:'Great Vibes', cursive; font-size:16px; color:#FFD700;">Mr and Mrs Bandele</em>
                   </p>
                 </td>
               </tr>
