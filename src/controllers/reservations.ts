@@ -73,27 +73,28 @@ import axios from "axios";
 
 const EMAIL_USER = process.env.EMAIL_USER;
 
-export async function sendMail(
-	to: string,
-	html: string,
-	invitationCode: string
-) {
+export async function sendMail(to, html, invitationCode) {
 	try {
 		// 1️⃣ Generate QR code
 		const qrBuffer = await generateQR(invitationCode);
 		const qrBase64 = qrBuffer.toString("base64");
 
-		// 2️⃣ Replace placeholder in your HTML with QR image
+		// 2️⃣ Insert QR code into HTML
 		const updatedHtml = html.replace(
 			"cid:qrcode",
 			`data:image/png;base64,${qrBase64}`
 		);
 
-		// 3️⃣ Build Elastic Email request payload
+		// 3️⃣ Build correct Elastic Email body
 		const emailData = {
-			Recipients: [to],
+			Recipients: [
+				{
+					Email: to,
+				},
+			],
 			Content: {
-				From: `"Tope and Funmbi's Celebration" <${EMAIL_USER}>`,
+				From: `${EMAIL_USER}`,
+				FromName: "Tope and Funmbi's Celebration",
 				Subject: "Invitation to our celebration 🎉",
 				Body: [
 					{
@@ -120,7 +121,10 @@ export async function sendMail(
 		console.log("✅ Email sent via Elastic Email:", response.data);
 		return response.data;
 	} catch (error) {
-		console.error("❌ Error sending email:", error.response?.data || error);
+		console.error(
+			"❌ Error sending email:",
+			error.response?.data || error.message
+		);
 		throw error;
 	}
 }
