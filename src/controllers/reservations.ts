@@ -4,6 +4,7 @@ import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
 import axios from "axios";
+import { error } from "console";
 
 // const CLIENT_ID = process.env.CLIENT_ID;
 // const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -184,10 +185,14 @@ export async function makeReservation(req: Request, res: Response) {
 			req.body;
 
 		const existing = await Reservation.findOne({ email });
-		if (existing)
+		if (existing) {
+			console.log(
+				"Make Reservation Error - User already exists in the database"
+			);
 			return res
 				.status(400)
 				.json({ message: "This user has already requested a reservation" });
+		}
 
 		const newReservation = await Reservation.create({
 			name,
@@ -204,12 +209,12 @@ export async function makeReservation(req: Request, res: Response) {
 			return res
 				.status(201)
 				.json({ message: "Reservation created successfully" });
-		else
-			return res
-				.status(401)
-				.json({ message: "There was an issue booking your reservation" });
+		else throw new Error("An error occured while creating this reservation");
 	} catch (error) {
-		console.log("Error fetching this reservation", error);
+		console.log(
+			"Make Reservation Error - User was not added successfully",
+			error
+		);
 		return res.status(500).json({ message: "Error Occured", error });
 	}
 }
