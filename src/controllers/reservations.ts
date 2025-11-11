@@ -138,7 +138,7 @@ export async function getReservations(req: Request, res: Response) {
 
 		//pagination
 		const page = req.query.page ? Number(req.query.page) : 1;
-		const limit = req.query.limit ? Number(req.query.limit) : 20;
+		const limit = req.query.limit ? Number(req.query.limit) : 1000;
 		const skip = (page - 1) * limit;
 		const count = await Reservation.countDocuments();
 
