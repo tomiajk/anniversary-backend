@@ -121,7 +121,7 @@ export default function (code: string, name: string, qrUrl: string) {
       <div class="content">
         <p>Dear ${name},</p>
         <p>
-          We are so excited to celebrate with you! This is a gentle reminder that our event is coming up THIS Saturday.
+          We are so excited to celebrate with you! This is a gentle reminder that our event is coming up this SATURDAY by 12 noon.
         </p>
         <p>
           Please keep this email handy as it contains your <strong>Invitation Code</strong> and <strong>QR Code</strong>, which you will be required to present for entry.
