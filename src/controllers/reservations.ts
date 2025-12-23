@@ -4,71 +4,130 @@ import reminderTemplate from "../helpers/reminderTemplate";
 import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
-import { google } from "googleapis";
+import axios from "axios";
+import { error } from "console";
 
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-const EMAIL_USER = process.env.EMAIL_USER;
+// const CLIENT_ID = process.env.CLIENT_ID;
+// const CLIENT_SECRET = process.env.CLIENT_SECRET;
+// const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+// const REDIRECT_URI = process.env.REDIRECT_URI;
+// const EMAIL_USER = process.env.EMAIL_USER;
 
-const oAuth2Client = new google.auth.OAuth2(
-	CLIENT_ID,
-	CLIENT_SECRET,
-	REDIRECT_URI
-);
+// const oAuth2Client = new google.auth.OAuth2(
+// 	CLIENT_ID,
+// 	CLIENT_SECRET,
+// 	REDIRECT_URI
+// );
 
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+// oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+// export async function sendMail(
+// 	to: string,
+// 	html: string,
+// 	invitationCode: string
+// ) {
+// 	try {
+// 		const qrBuffer = await generateQR(invitationCode);
+// 		const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+// 		// Convert QR image to Base64
+// 		const qrBase64 = qrBuffer.toString("base64");
+
+// 		// Create HTML email with embedded image
+// 		const messageParts = [
+// 			`From: '"Tope and Funmbi" <${EMAIL_USER}>'`,
+// 			`To: ${to}`,
+// 			"Subject: Invitation to our celebration",
+// 			"MIME-Version: 1.0",
+// 			"Content-Type: multipart/related; boundary=boundary123",
+// 			"",
+// 			"--boundary123",
+// 			"Content-Type: text/html; charset=UTF-8",
+// 			"",
+// 			html.replace("cid:qrcode", "data:image/png;base64," + qrBase64),
+// 			"",
+// 			"--boundary123--",
+// 		];
+
+// 		const message = messageParts.join("\n");
+
+// 		// Gmail API requires Base64URL encoding
+// 		const encodedMessage = Buffer.from(message)
+// 			.toString("base64")
+// 			.replace(/\+/g, "-")
+// 			.replace(/\//g, "_")
+// 			.replace(/=+$/, "");
+
+// 		const result = await gmail.users.messages.send({
+// 			userId: "me",
+// 			requestBody: {
+// 				raw: encodedMessage,
+// 			},
+// 		});
+
+// 		console.log("✅ Email sent via Gmail API:", result.data.id);
+// 		return result.data;
+// 	} catch (error) {
+// 		console.error("❌ Error sending email:", error);
+// 		throw error;
+// 	}
+// }
+
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const SENDER_EMAIL = process.env.SENDER_EMAIL;
+const SENDER_NAME = process.env.SENDER_NAME;
 
 export async function sendMail(
 	to: string,
 	html: string,
 	invitationCode: string,
-	subject: string = "Invitation to our celebration"
+	subject: string = "Invitation to our celebration 🎉"
 ) {
 	try {
+		// Generate QR as Base64
 		const qrBuffer = await generateQR(invitationCode);
-		const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-
-		// Convert QR image to Base64
 		const qrBase64 = qrBuffer.toString("base64");
 
-		// Create HTML email with embedded image
-		const messageParts = [
-			`From: '"Tope and Funmbi" <${EMAIL_USER}>'`,
-			`To: ${to}`,
-			`Subject: ${subject}`,
-			"MIME-Version: 1.0",
-			"Content-Type: multipart/related; boundary=boundary123",
-			"",
-			"--boundary123",
-			"Content-Type: text/html; charset=UTF-8",
-			"",
-			html.replace("cid:qrcode", "data:image/png;base64," + qrBase64),
-			"",
-			"--boundary123--",
-		];
+		// Use correct Brevo syntax for inline image
+		const htmlWithQR = html.replace(/cid:qrcode/g, "cid:qrcode.png");
 
-		const message = messageParts.join("\n");
+		// Brevo payload (note the attachments naming)
+		const payload = {
+			sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+			to: [{ email: to }],
+			subject: subject,
+			htmlContent: htmlWithQR,
+			attachment: [
+				{
+					name: "qrcode.png",
+					content: qrBase64,
+					type: "image/png",
+					contentId: "qrcode.png",
+					disposition: "inline",
+				},
+			],
+		};
 
-		// Gmail API requires Base64URL encoding
-		const encodedMessage = Buffer.from(message)
-			.toString("base64")
-			.replace(/\+/g, "-")
-			.replace(/\//g, "_")
-			.replace(/=+$/, "");
+		// Send through Brevo API
+		const response = await axios.post(
+			"https://api.brevo.com/v3/smtp/email",
+			payload,
+			{
+				headers: {
+					accept: "application/json",
+					"content-type": "application/json",
+					"api-key": BREVO_API_KEY,
+				},
+			}
+		);
 
-		const result = await gmail.users.messages.send({
-			userId: "me",
-			requestBody: {
-				raw: encodedMessage,
-			},
-		});
-
-		console.log("✅ Email sent via Gmail API:", result.data.id);
-		return result.data;
+		console.log("✅ Email sent successfully:", response.data);
+		return response.data;
 	} catch (error) {
-		console.error("❌ Error sending email:", error);
+		console.error(
+			"❌ Brevo send error:",
+			error.response?.data || error.message || error
+		);
 		throw error;
 	}
 }
@@ -85,7 +144,7 @@ export async function getReservations(req: Request, res: Response) {
 
 		//pagination
 		const page = req.query.page ? Number(req.query.page) : 1;
-		const limit = req.query.limit ? Number(req.query.limit) : 20;
+		const limit = req.query.limit ? Number(req.query.limit) : 1000;
 		const skip = (page - 1) * limit;
 		const count = await Reservation.countDocuments();
 
@@ -132,10 +191,14 @@ export async function makeReservation(req: Request, res: Response) {
 			req.body;
 
 		const existing = await Reservation.findOne({ email });
-		if (existing)
+		if (existing) {
+			console.log(
+				"Make Reservation Error - User already exists in the database"
+			);
 			return res
 				.status(400)
 				.json({ message: "This user has already requested a reservation" });
+		}
 
 		const newReservation = await Reservation.create({
 			name,
@@ -152,12 +215,12 @@ export async function makeReservation(req: Request, res: Response) {
 			return res
 				.status(201)
 				.json({ message: "Reservation created successfully" });
-		else
-			return res
-				.status(401)
-				.json({ message: "There was an issue booking your reservation" });
+		else throw new Error("An error occured while creating this reservation");
 	} catch (error) {
-		console.log("Error fetching this reservation", error);
+		console.log(
+			"Make Reservation Error - User was not added successfully",
+			error
+		);
 		return res.status(500).json({ message: "Error Occured", error });
 	}
 }
