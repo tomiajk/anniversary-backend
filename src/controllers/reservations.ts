@@ -1,5 +1,6 @@
 import createUniqueCode from "../helpers/createCode";
 import emailTemplate from "../helpers/emailTemplate";
+import reminderTemplate from "../helpers/reminderTemplate";
 import generateQR from "../helpers/generateQR";
 import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
@@ -76,7 +77,12 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SENDER_EMAIL = process.env.SENDER_EMAIL;
 const SENDER_NAME = process.env.SENDER_NAME;
 
-export async function sendMail(to, html, invitationCode) {
+export async function sendMail(
+	to: string,
+	html: string,
+	invitationCode: string,
+	subject: string = "Invitation to our celebration 🎉"
+) {
 	try {
 		// Generate QR as Base64
 		const qrBuffer = await generateQR(invitationCode);
@@ -89,7 +95,7 @@ export async function sendMail(to, html, invitationCode) {
 		const payload = {
 			sender: { name: SENDER_NAME, email: SENDER_EMAIL },
 			to: [{ email: to }],
-			subject: "Invitation to our celebration 🎉",
+			subject: subject,
 			htmlContent: htmlWithQR,
 			attachment: [
 				{
@@ -269,6 +275,87 @@ export async function checkInGuest(req: Request, res: Response) {
 			.json({ message: "Guest checked in successfully", data: reservation });
 	} catch (error) {
 		console.log("Error fetching this reservation", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
+}
+
+export async function sendReminders(req: Request, res: Response) {
+	try {
+		const reservations = await Reservation.find({ status: "accepted" });
+
+		if (reservations.length === 0) {
+			return res
+				.status(200)
+				.json({ message: "No accepted reservations found to remind." });
+		}
+
+		let sentCount = 0;
+		const errors: any[] = [];
+
+		const emailPromises = reservations.map(async (reservation) => {
+			if (reservation.email && reservation.invitationCode) {
+				try {
+					await sendMail(
+						reservation.email,
+						reminderTemplate(
+							reservation.invitationCode,
+							reservation.name,
+							"qrcode"
+						),
+						reservation.invitationCode,
+						"Event Reminder: Funmbi & Tope's Celebration"
+					);
+					sentCount++;
+				} catch (err) {
+					console.error(`Failed to send reminder to ${reservation.email}`, err);
+					errors.push({ email: reservation.email, error: err });
+				}
+			}
+		});
+
+		await Promise.all(emailPromises);
+
+		return res.status(200).json({
+			message: "Reminders process completed",
+			total: reservations.length,
+			sent: sentCount,
+			errors: errors.length > 0 ? errors : undefined,
+		});
+	} catch (error) {
+		console.log("Error sending reminders", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
+}
+
+export async function sendReminderToSingleUser(req: Request, res: Response) {
+	try {
+		const { reservationId } = req.params;
+		const reservation = await Reservation.findById(reservationId);
+
+		if (!reservation) {
+			return res.status(404).json({ message: "Reservation not found" });
+		}
+
+		if (reservation.status !== "accepted" || !reservation.invitationCode) {
+			return res.status(400).json({
+				message: "Reservation is not accepted or missing invitation code",
+			});
+		}
+
+		await sendMail(
+			reservation.email,
+			reminderTemplate(
+				reservation.invitationCode,
+				reservation.name,
+				"qrcode"
+			),
+			reservation.invitationCode,
+			"Event Reminder: Funmbi & Tope's Celebration"
+		);
+
+		return res.status(200).json({ message: "Reminder sent successfully" });
+	} catch (error) {
+		console.log("Error sending reminder", error);
 		return res.status(500).json({ message: "Error Occured", error });
 	}
 }
