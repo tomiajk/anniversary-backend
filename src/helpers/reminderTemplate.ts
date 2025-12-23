@@ -117,15 +117,14 @@ export default function (code: string, name: string, qrUrl: string) {
       <div class="header">
         <h1>Event Reminder</h1>
         <div class="subheader">Funmbi & Tope</div>
-        <div class="divider"></div>
       </div>
       <div class="content">
         <p>Dear ${name},</p>
         <p>
-          We are so excited to celebrate with you! This is a gentle reminder that our event is coming up THIS Saturday!.
+          We are so excited to celebrate with you! This is a gentle reminder that our event is coming up THIS Saturday.
         </p>
         <p>
-          Please keep this email handy as it contains your <strong>Invitation Code</strong> and <strong>QR Code</strong>, which you will need for entry.
+          Please keep this email handy as it contains your <strong>Invitation Code</strong> and <strong>QR Code</strong>, which you will be required to present for entry.
         </p>
         <div class="invite-box">
           <h2>Invitation Code</h2>
