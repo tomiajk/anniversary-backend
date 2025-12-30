@@ -6,6 +6,7 @@ import Reservation from "../model/Reservation";
 import { Request, Response } from "express";
 import axios from "axios";
 import { error } from "console";
+import thankYouTemplate from "../helpers/thankYouTemplate";
 
 // const CLIENT_ID = process.env.CLIENT_ID;
 // const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -323,6 +324,50 @@ export async function sendReminders(req: Request, res: Response) {
 		});
 	} catch (error) {
 		console.log("Error sending reminders", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
+}
+
+export async function sendThankYou(req: Request, res: Response) {
+	try {
+		const reservations = await Reservation.find({ status: "accepted" });
+
+		if (reservations.length === 0) {
+			return res
+				.status(200)
+				.json({ message: "No accepted reservations found." });
+		}
+
+		let sentCount = 0;
+		const errors: any[] = [];
+
+		const emailPromises = reservations.map(async (reservation) => {
+			if (reservation.email) {
+				try {
+					await sendMail(
+						reservation.email,
+						thankYouTemplate(reservation.name),
+						reservation.invitationCode || "",
+						"Thank you for attending our celebration! ❤️"
+					);
+					sentCount++;
+				} catch (err) {
+					console.error(`Failed to send thank you to ${reservation.email}`, err);
+					errors.push({ email: reservation.email, error: err });
+				}
+			}
+		});
+
+		await Promise.all(emailPromises);
+
+		return res.status(200).json({
+			message: "Thank you messages process completed",
+			total: reservations.length,
+			sent: sentCount,
+			errors: errors.length > 0 ? errors : undefined,
+		});
+	} catch (error) {
+		console.log("Error sending thank you messages", error);
 		return res.status(500).json({ message: "Error Occured", error });
 	}
 }
