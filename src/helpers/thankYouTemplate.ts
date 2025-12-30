@@ -71,10 +71,10 @@ export default function (name: string) {
       <div class="content">
         <p>Dear ${name},</p>
         <p>
-          We want to express our deepest gratitude to you for joining us to celebrate our anniversary last Saturday. Your presence meant the world to us and made the celebration truly unforgettable.
+          On behalf of myself and my family, we'll like to appreciate you for gracing our celebration with your presence and gift at my 40th birthday and 15th wedding anniversary. It was a great delight seeing you.
         </p>
         <p>
-          Thank you for the love, laughter, and support you shared with us. We are so blessed to have you in our lives.
+          We are very grateful.
         </p>
         <p style="margin-top:20px;">
           With love and appreciation,<br/>
