@@ -372,6 +372,49 @@ export async function sendThankYou(req: Request, res: Response) {
 	}
 }
 
+export async function sendThankYouToSingleUser(req: Request, res: Response) {
+	try {
+		const { reservationId } = req.params;
+		const reservation = await Reservation.findById(reservationId);
+
+		if (!reservation) {
+			return res.status(404).json({ message: "Reservation not found" });
+		}
+
+		if (reservation.status !== "accepted") {
+			return res.status(400).json({ message: "Only accepted reservations can receive thank you emails" });
+		}
+
+		if (!reservation.email) {
+			return res.status(400).json({ message: "Reservation does not have an email address" });
+		}
+
+		try {
+			await sendMail(
+				reservation.email,
+				thankYouTemplate(reservation.name),
+				reservation.invitationCode || "",
+				"Thank you for attending our celebration! ❤️"
+			);
+
+			return res.status(200).json({
+				message: "Thank you email sent successfully",
+				email: reservation.email,
+				name: reservation.name,
+			});
+		} catch (err) {
+			console.error(`Failed to send thank you to ${reservation.email}`, err);
+			return res.status(500).json({ 
+				message: "Failed to send thank you email",
+				error: err 
+			});
+		}
+	} catch (error) {
+		console.log("Error sending thank you message to single user", error);
+		return res.status(500).json({ message: "Error Occured", error });
+	}
+}
+
 export async function sendReminderToSingleUser(req: Request, res: Response) {
 	try {
 		const { reservationId } = req.params;
