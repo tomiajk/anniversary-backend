@@ -7,6 +7,7 @@ import {
   deleteReservation,
   checkInGuest,
   sendReminders,
+  sendThankYou,
   sendReminderToSingleUser,
 } from "../controllers/reservations";
 import authenticate from "../middlewares/authentication";
@@ -33,6 +34,8 @@ router.post("/remind-all", authenticate, sendReminders);
 
 // admin should be able to send reminder to a single user
 router.post("/remind/:reservationId", authenticate, sendReminderToSingleUser);
+
+router.post("/send-thank-you", authenticate, sendThankYou)
 
 // guest should be able to submit a reservation
 router.post("/book", makeReservation);
